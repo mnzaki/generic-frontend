@@ -24,13 +24,16 @@ class App extends React.Component {
   handleClick = async () => {
     const { qrCode } = this.state
     const { qrCode: ssoQrCode, socket, identifier } = await getQrCode(
-      `authenticate`,
-      {},
+      `receive`,
+      {
+        credentialType: 'eid',
+        data: JSON.stringify({}),
+      },
     )
     qrCode.source = ssoQrCode
     this.setState({ qrCode })
 
-    await awaitStatus({ socket, identifier })
+    // await awaitStatus({ socket, identifier })
   }
 
   render() {
