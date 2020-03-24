@@ -2,6 +2,8 @@ import React from 'react'
 import './reset.css'
 import './App.css'
 import { getQrCode, awaitStatus } from './utils/sockets'
+import { InteractionContainer } from './ui/interaction'
+import { InteractionType } from './config'
 const jolocomLogo = require('./images/JO_icon.svg')
 
 interface State {
@@ -19,47 +21,17 @@ const initialState: State = {
 }
 
 class App extends React.Component {
-  state = initialState
-
-  handleClick = async () => {
-    const { qrCode } = this.state
-    const { qrCode: ssoQrCode, socket, identifier } = await getQrCode(
-      `receive`,
-      {
-        credentialType: 'eid',
-        data: JSON.stringify({}),
-      },
-    )
-    qrCode.source = ssoQrCode
-    this.setState({ qrCode })
-
-    // await awaitStatus({ socket, identifier })
-  }
-
   render() {
     return (
       <React.Fragment>
         <header className="c-header">
-          <h1>Generic Frontend</h1>
+          <h1>Interactions UX Demo</h1>
         </header>
         <main>
           <article className="c-qrcode-container">
-            {this.state.qrCode.source ? (
-              <img
-                src={this.state.qrCode.source}
-                className="c-qrcode"
-                alt="QR Code"
-              />
-            ) : (
-              <button onClick={this.handleClick} className="c-qr-button">
-                <img
-                  src={jolocomLogo}
-                  className="c-qr-button__image"
-                  alt="Jolocom logo"
-                />
-                Get QR Code
-              </button>
-            )}
+            <InteractionContainer interactionType={InteractionType.Receive} />
+            <InteractionContainer interactionType={InteractionType.Share} />
+            <InteractionContainer interactionType={InteractionType.Auth} />
           </article>
         </main>
       </React.Fragment>

@@ -3,10 +3,12 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  background: #060107;
 }
 
 .c-header {
   margin-top: 4rem;
+  color: #ffefdf
 }
 
 .c-qrcode-container {
@@ -26,6 +28,7 @@
   border-radius: 4px;
   padding: 0.75rem 1rem;
   font-size: 1rem;
+  margin: 20px;
 }
 
 .c-qr-button__image {

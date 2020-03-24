@@ -21,14 +21,15 @@ export const getQrCode = (
   socketName: string,
   query: any,
 ): Promise<QrCodeClientResponse> => {
-  const socket: SocketIOClient.Socket = io(`${backendUrl}/${socketName}/`, {
+  const socket: SocketIOClient.Socket = io(`${backendUrl}/${socketName}`, {
     forceNew: true,
     query,
   })
+
   return new Promise(resolve =>
-    socket.on('qrCode', ({ qrCode, identifier }: QrCodeServerResponse) =>
-      resolve({ qrCode, socket, identifier }),
-    ),
+    socket.on('qrCode', ({ qrCode, identifier }: QrCodeServerResponse) => {
+      return resolve({ qrCode, socket, identifier })
+    }),
   )
 }
 
