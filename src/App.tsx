@@ -25,13 +25,13 @@ class App extends React.Component {
     return (
       <React.Fragment>
         <header className="c-header">
-          <h1>Interactions UX Demo</h1>
+          <h1>RPC Demo</h1>
         </header>
-        <main>
+        <main className="main">
           <article className="c-qrcode-container">
-            <InteractionContainer interactionType={InteractionType.Receive} />
-            <InteractionContainer interactionType={InteractionType.Share} />
-            <InteractionContainer interactionType={InteractionType.Auth} />
+            <InteractionContainer />
+            <InteractionContainer />
+            <InteractionContainer />
           </article>
         </main>
       </React.Fragment>

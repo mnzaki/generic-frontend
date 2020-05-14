@@ -2,14 +2,13 @@ import io from 'socket.io-client'
 import { backendUrl } from '../config'
 
 interface QrCodeServerResponse {
-  qrCode: string
-  identifier: any
+  authTokenQR: string
+  start: string
+  identifier: string
 }
 
-export interface QrCodeClientResponse {
-  qrCode: string
+export interface QrCodeClientResponse extends QrCodeServerResponse {
   socket: SocketIOClient.Socket
-  identifier: string
 }
 
 interface Status {
@@ -27,9 +26,28 @@ export const getQrCode = (
   })
 
   return new Promise(resolve =>
-    socket.on('qrCode', ({ qrCode, identifier }: QrCodeServerResponse) => {
-      return resolve({ qrCode, socket, identifier })
-    }),
+    socket.on(
+      'RPCauth/req',
+      ({ authTokenQR, identifier, start }: QrCodeServerResponse) => {
+        return resolve({ authTokenQR, start, socket, identifier })
+      },
+    ),
+  )
+}
+
+export const getEncryptedData = (data: string): Promise<string> => {
+  const socket: SocketIOClient.Socket = io(`${backendUrl}/RPCencrypt`, {
+    forceNew: true,
+    query: { rpc: 'asymEncrypt', request: data },
+  })
+
+  return new Promise(resolve =>
+    socket.on(
+      'RPCencrypt/done',
+      ({ response }: { rpc: string; response: string }) => {
+        return resolve(response)
+      },
+    ),
   )
 }
 
@@ -37,7 +55,7 @@ export const awaitStatus = ({ socket, identifier }: Status) => {
   return new Promise((resolve, reject) => {
     socket.on(identifier, (data: any) => {
       const parsedData = JSON.parse(data)
-      if (parsedData.status === 'failure') {
+      if (parsedData.walletReady) {
         reject(parsedData)
       } else {
         resolve(parsedData)

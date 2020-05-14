@@ -4,6 +4,12 @@
   justify-content: center;
   align-items: center;
   background: #060107;
+  flex: 1;
+}
+
+.main {
+  height: 100%;
+  min-width: 500px;
 }
 
 .c-header {
@@ -21,7 +27,7 @@
 
 .c-qr-button {
   display: flex;
-  align-items: center;
+  align-items: 'space-around';
   background-color: rgb(148, 47, 81);
   color: white;
   border: none;
@@ -35,4 +41,5 @@
   height: 1.25rem;
   width: 1.25rem;
   margin-right: 0.5rem;
+  flex: 1
 }

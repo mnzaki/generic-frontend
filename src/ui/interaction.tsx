@@ -1,64 +1,30 @@
 import React, { useState } from 'react'
-import { getQrCode, awaitStatus } from '../utils/sockets'
+import { getQrCode, awaitStatus, getEncryptedData } from '../utils/sockets'
 import { InteractionButton } from './interactionButton'
-import { SelectionComponent } from './selectionComponent'
-import {
-  InteractionType,
-  ServiceCredentials,
-  ShareCredentials,
-} from '../config'
 
-interface Props {
-  interactionType: InteractionType
-}
-
-export const InteractionContainer = (props: Props) => {
-  const { interactionType } = props
+export const InteractionContainer = () => {
   const [qr, setQr] = useState<string>('')
   const [err, setErr] = useState<boolean>(false)
 
-  // TODO use Set instead of array
-  const [issuedCredentials, setIssued] = useState<Array<string>>([
-    ServiceCredentials.FirstCredential,
-  ])
-  const [invalidCredentials, setInvalid] = useState<Array<string>>([])
-  const [requestedCredentials, setRequested] = useState<Array<string>>([
-    ShareCredentials.Email,
-  ])
-  const [description, setDescription] = useState<string>('Unlock your scooter')
+  const [encryptInput, setEncryptInput] = useState('')
+  const [encryptOutput, setEncryptOutput] = useState<string>('')
+  const [encryptReady, setEncryptReady] = useState(false)
 
-  const availableIssueCredentials = Object.values(ServiceCredentials)
-  const availableShareCredentials = [
-    ...Object.values(ShareCredentials),
-    ...availableIssueCredentials,
-  ]
-
-  const onClick = async () => {
-    const { qrCode, socket, identifier } = await getQrCode(interactionType, {
-      ...(interactionType === InteractionType.Receive && {
-        types: Array.from(new Set(issuedCredentials)),
-        invalid: Array.from(new Set(invalidCredentials)),
-      }),
-      ...(interactionType === InteractionType.Share && {
-        types: Array.from(new Set(requestedCredentials)),
-      }),
-      ...(interactionType === InteractionType.Auth && {
-        desc: description,
-      }),
+  const onClickStart = async () => {
+    const { authTokenQR, socket, identifier } = await getQrCode('RPCstart', {
+      start: 'rpcdemo',
     })
-
-    setQr(qrCode)
+    setQr(authTokenQR)
     awaitStatus({ socket, identifier })
-      .then((obj: any) => {
-        if (obj.status === 'success') setQr('')
+      .then(() => {
+        setQr('')
+        setEncryptReady(true)
       })
       .catch(e => setErr(e))
   }
 
-  const handleSelect = (array: string[], item: string) => {
-    return !array.includes(item)
-      ? [...array, item]
-      : array.filter(val => val !== item)
+  const onClickEncrypt = async () => {
+    getEncryptedData(encryptInput).then(setEncryptOutput)
   }
 
   return (
@@ -74,53 +40,7 @@ export const InteractionContainer = (props: Props) => {
         borderRadius: '40px',
       }}
     >
-      <h2>{interactionType.toUpperCase()}</h2>
-      {interactionType === InteractionType.Receive && (
-        <>
-          <SelectionComponent
-            title={'Available Credentials'}
-            options={availableIssueCredentials}
-            onSelect={type => setIssued(handleSelect(issuedCredentials, type))}
-            selectedItems={issuedCredentials}
-          />
-          <SelectionComponent
-            title={'Break Credentials'}
-            options={issuedCredentials}
-            onSelect={type =>
-              setInvalid(handleSelect(invalidCredentials, type))
-            }
-            selectedItems={invalidCredentials}
-          />
-        </>
-      )}
-
-      {interactionType === InteractionType.Share && (
-        <SelectionComponent
-          title={'Request Credentials'}
-          options={availableShareCredentials}
-          onSelect={type =>
-            setRequested(handleSelect(requestedCredentials, type))
-          }
-          selectedItems={requestedCredentials}
-        />
-      )}
-
-      {interactionType === InteractionType.Auth && (
-        <div style={{ paddingTop: '20px' }}>
-          <h4>Description</h4>
-          <input
-            style={{
-              margin: '10px',
-              width: '100%',
-            }}
-            type="text"
-            name="description"
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-          />
-        </div>
-      )}
-
+      <h2>RPC Encrypt</h2>
       <div
         style={{
           width: '100%',
@@ -131,15 +51,49 @@ export const InteractionContainer = (props: Props) => {
           padding: '20px',
         }}
       >
-        <InteractionButton
-          onClick={onClick}
-          text={interactionType.toUpperCase()}
-        />
+        {encryptReady ? (
+          <>
+            <div style={{ paddingTop: '20px', width: '100%' }}>
+              <h4>Data to encrypt</h4>
+              <input
+                style={{
+                  margin: '10px',
+                  width: '100%',
+                }}
+                type="text"
+                name="description"
+                value={encryptInput}
+                onChange={e => setEncryptInput(e.target.value)}
+              />
+            </div>
+            <InteractionButton
+              onClick={onClickEncrypt}
+              text={'Request Encryption'}
+            />
+          </>
+        ) : (
+          <InteractionButton onClick={onClickStart} text={'Start RPC Demo'} />
+        )}
 
         {err ? (
           <b>Error</b>
         ) : (
           qr && <img src={qr} className="c-qrcode" alt="QR Code" />
+        )}
+        {!!encryptOutput.length && (
+          <div
+            style={{
+              border: '1px solid black',
+              padding: '20px',
+              backgroundColor: 'white',
+              width: '500px',
+              textAlign: 'center',
+              overflowWrap: 'break-word',
+              borderRadius: '10px',
+            }}
+          >
+            <i>{encryptOutput}</i>
+          </div>
         )}
       </div>
     </div>
