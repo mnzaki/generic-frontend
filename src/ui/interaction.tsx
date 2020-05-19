@@ -3,28 +3,35 @@ import { getQrCode, awaitStatus, getEncryptedData } from '../utils/sockets'
 import { InteractionButton } from './interactionButton'
 
 export const InteractionContainer = () => {
+  const [identifier, setIdentifier] = useState<string>('')
+  const [wsAddr, setWsAddress] = useState<string>('')
   const [qr, setQr] = useState<string>('')
+  const [jwt, setJwt] = useState<string>('')
   const [err, setErr] = useState<boolean>(false)
 
   const [encryptInput, setEncryptInput] = useState('')
+  //const [decryptInput, setDecryptInput] = useState('')
   const [encryptOutput, setEncryptOutput] = useState<string>('')
+  //const [decryptOutput, setdecryptOutput] = useState<string>('')
   const [encryptReady, setEncryptReady] = useState(false)
 
   const onClickStart = async () => {
-    const { authTokenQR, socket, identifier } = await getQrCode('RPCstart', {
-      start: 'rpcdemo',
-    })
+    const { authTokenQR, ws, authToken, socket, identifier } = await getQrCode('rpcProxy')
     setQr(authTokenQR)
-    awaitStatus({ socket, identifier })
+    setJwt(authToken)
+    setIdentifier(identifier)
+    setWsAddress(ws)
+    awaitStatus(identifier)
       .then(() => {
         setQr('')
+        setJwt('')
         setEncryptReady(true)
       })
-      .catch(e => setErr(e))
+      .catch((e: any) => setErr(e))
   }
 
   const onClickEncrypt = async () => {
-    getEncryptedData(encryptInput).then(setEncryptOutput)
+    getEncryptedData(identifier, encryptInput).then(setEncryptOutput)
   }
 
   return (
@@ -78,7 +85,11 @@ export const InteractionContainer = () => {
         {err ? (
           <b>Error</b>
         ) : (
-          qr && <img src={qr} className="c-qrcode" alt="QR Code" />
+          <div>
+            <img src={qr} className="c-qrcode" alt="QR Code" />
+            <pre>{jwt}</pre>
+            <pre>yarn run ts-node rpc_agent {wsAddr}</pre>
+          </div>
         )}
         {!!encryptOutput.length && (
           <div
