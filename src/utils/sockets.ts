@@ -1,7 +1,10 @@
 import io from 'socket.io-client'
 //import { backendUrl } from '../config'
 
-const backendUrl = 'ws://localhost:9000'
+const backendHostport = 'localhost:9000'
+const backendUrl = `http://${backendHostport}`
+const backendWSURL = `ws://${backendHostport}`
+
 interface QrCodeServerResponse {
   authTokenQR: string
   authToken: string
@@ -10,11 +13,11 @@ interface QrCodeServerResponse {
 }
 
 export interface QrCodeClientResponse extends QrCodeServerResponse {
-  socket: SocketIOClient.Socket
+  socket: WebSocket
 }
 
 interface Status {
-  socket: SocketIOClient.Socket
+  socket: WebSocket
   identifier: string
 }
 
@@ -27,24 +30,40 @@ const sockMap: {[id: string]: any} = {}
 } = {}
 */
 
-export const getQrCode = (
+let rpcWS: WebSocket
+
+export const getQrCode = async (
   socketName: string,
 ): Promise<QrCodeClientResponse> => {
-  console.log('this is', `${backendUrl}/${socketName}`)
-  const socket = new WebSocket(`${backendUrl}/${socketName}`)
-  const promise = new Promise(resolve => {
-    socket.onmessage = (evt) => {
-      const { authTokenQR, authToken, identifier }: QrCodeServerResponse = JSON.parse(evt.data)
-      sockMap[identifier] = {
-        socket,
-        promise,
-        msgN: 0,
-        messages: {}
-      }
-      resolve({ authTokenQR, authToken, identifier, socket })
+  const chanResp = await fetch(`${backendUrl}/${socketName}`, { method: 'POST' })
+  const chanJSON = await chanResp.json()
+  console.log('this is', `${backendUrl}/${socketName}`, chanJSON)
+  console.log('connecting to RPC Proxy at', `${chanJSON.urls.rpc}`, chanJSON)
+  rpcWS = new WebSocket(`${chanJSON.urls.rpc}`)
+  rpcWS.onmessage = (evt) => {
+    console.log('received from SSI Agent over rpcWS', evt.data)
+    // FIXME TODO
+  }
+  const promise = new Promise<QrCodeClientResponse>(resolve => {
+    rpcWS.onopen = (evt) => {
+      resolve({
+        authTokenQR: '',
+        authToken: chanJSON.jwt,
+        identifier: chanJSON.nonce,
+        ws: chanJSON.urls.rpc,
+        socket: rpcWS
+      })
     }
-  })
-  return promise as Promise<QrCodeClientResponse>
+  });
+
+  sockMap[chanJSON.nonce] = {
+    socket: rpcWS,
+    promise,
+    msgN: 0,
+    messages: {}
+  }
+
+  return promise
 }
 
 export const getEncryptedData = (identifier: string, data: string): Promise<string> => {
