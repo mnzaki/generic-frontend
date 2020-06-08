@@ -1,9 +1,7 @@
 import io from 'socket.io-client'
-//import { backendUrl } from '../config'
+import { serviceUrl, serviceHostport } from '../config'
 
-const backendHostport = 'localhost:9000'
-const backendUrl = `http://${backendHostport}`
-const backendWSURL = `ws://${backendHostport}`
+const serviceWsUrl = `ws://${serviceHostport}`
 
 interface QrCodeServerResponse {
   authTokenQR: string
@@ -35,11 +33,11 @@ let rpcWS: WebSocket
 export const getQrCode = async (
   socketName: string,
 ): Promise<QrCodeClientResponse> => {
-  const chanResp = await fetch(`${backendUrl}/${socketName}`, { method: 'POST' })
+  const chanResp = await fetch(`${serviceUrl}/${socketName}`, { method: 'POST' })
   const chanJSON = await chanResp.json()
-  console.log('this is', `${backendUrl}/${socketName}`, chanJSON)
-  console.log('connecting to RPC Proxy at', `${chanJSON.urls.rpc}`, chanJSON)
-  rpcWS = new WebSocket(`${chanJSON.urls.rpc}`)
+  console.log('this is', `${serviceWsUrl}/${socketName}`, chanJSON)
+  console.log('connecting to RPC Proxy at', `${chanJSON.paths.rpc}`, chanJSON)
+  rpcWS = new WebSocket(`${serviceWsUrl}${chanJSON.paths.rpc}`)
   rpcWS.onmessage = (evt) => {
     console.log('received from SSI Agent over rpcWS', evt.data)
     // FIXME TODO
@@ -50,7 +48,7 @@ export const getQrCode = async (
         authTokenQR: '',
         authToken: chanJSON.jwt,
         identifier: chanJSON.nonce,
-        ws: chanJSON.urls.rpc,
+        ws: chanJSON.paths.rpc,
         socket: rpcWS
       })
     }
