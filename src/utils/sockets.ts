@@ -48,7 +48,7 @@ export const getQrCode = async (
     console.log('received from SSI Agent over rpcWS', msg)
 
     // @ts-ignore
-    session.messages[msg.id].resolve(msg)
+    session.messages[msg.id].resolve(msg.response)
     // FIXME TODO
   }
   
@@ -94,6 +94,9 @@ export const sendRPC = (identifier: string, rpc: string, request: any = ''): Pro
 
 export const getEncryptedData = (identifier: string, data: string): Promise<string> => {
   return sendRPC(identifier, 'asymEncrypt', data)
+}
+export const getDecryptedData = (identifier: string, data: string): Promise<string> => {
+  return sendRPC(identifier, 'asymDecrypt', data)
 }
 
 export const awaitStatus = (identifier: string) => {

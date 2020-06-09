@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { getQrCode, awaitStatus, getEncryptedData } from '../utils/sockets'
+import { getQrCode, awaitStatus, getEncryptedData, getDecryptedData } from '../utils/sockets'
 import { InteractionButton } from './interactionButton'
 
 export const InteractionContainer = () => {
@@ -31,6 +31,9 @@ export const InteractionContainer = () => {
 
   const onClickEncrypt = async () => {
     getEncryptedData(identifier, encryptInput).then(setEncryptOutput)
+  }
+  const onClickDecrypt = async () => {
+    getDecryptedData(identifier, encryptInput).then(setEncryptOutput)
   }
 
   return (
@@ -65,6 +68,7 @@ export const InteractionContainer = () => {
                 style={{
                   margin: '10px',
                   width: '100%',
+                  maxWidth: '500px',
                 }}
                 type="text"
                 name="description"
@@ -75,6 +79,10 @@ export const InteractionContainer = () => {
             <InteractionButton
               onClick={onClickEncrypt}
               text={'Request Encryption'}
+            />
+            <InteractionButton
+              onClick={onClickDecrypt}
+              text={'Request Decryption'}
             />
           </>
         ) : (
