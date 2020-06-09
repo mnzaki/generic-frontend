@@ -16,11 +16,10 @@ export const InteractionContainer = () => {
   const [encryptReady, setEncryptReady] = useState(false)
 
   const onClickStart = async () => {
-    const { authTokenQR, ws, authToken, socket, identifier } = await getQrCode('rpcProxy')
+    const { authTokenQR, authTokenJWT, socket, identifier } = await getQrCode('rpcProxy')
     setQr(authTokenQR)
-    setJwt(authToken)
+    setJwt(authTokenJWT)
     setIdentifier(identifier)
-    setWsAddress(ws)
     awaitStatus(identifier)
       .then(() => {
         setQr('')
@@ -85,11 +84,12 @@ export const InteractionContainer = () => {
         {err ? (
           <b>Error</b>
         ) : (
-          <div>
+          jwt && (<div>
             <img src={qr} className="c-qrcode" alt="QR Code" />
-            <pre>{jwt}</pre>
-            <pre>yarn run ts-node rpc_agent {wsAddr}</pre>
-          </div>
+            <div style={{wordWrap: 'break-word', maxWidth: '50vw'}}>
+              {'yarn run ts-node rpc_agent2/index.ts ' + jwt}
+            </div>
+          </div>)
         )}
         {!!encryptOutput.length && (
           <div

@@ -5,9 +5,8 @@ const serviceWsUrl = `ws://${serviceHostport}`
 
 interface QrCodeServerResponse {
   authTokenQR: string
-  authToken: string
+  authTokenJWT: string
   identifier: string
-  ws: string
 }
 
 export interface QrCodeClientResponse extends QrCodeServerResponse {
@@ -36,44 +35,68 @@ export const getQrCode = async (
   const chanResp = await fetch(`${serviceUrl}/${socketName}`, { method: 'POST' })
   const chanJSON = await chanResp.json()
   console.log('this is', `${serviceWsUrl}/${socketName}`, chanJSON)
-  console.log('connecting to RPC Proxy at', `${chanJSON.paths.rpc}`, chanJSON)
-  rpcWS = new WebSocket(`${serviceWsUrl}${chanJSON.paths.rpc}`)
+  console.log('connecting to RPC Proxy at', `${chanJSON.paths.rpcWS}`, chanJSON)
+
+  let resolveReady: { (): void; (value?: unknown): void } | null
+  const readyPromise = new Promise(resolve => {
+    resolveReady = resolve
+  })
+
+  rpcWS = new WebSocket(`${serviceWsUrl}${chanJSON.paths.rpcWS}`)
   rpcWS.onmessage = (evt) => {
-    console.log('received from SSI Agent over rpcWS', evt.data)
+    const msg = JSON.parse(evt.data)
+    console.log('received from SSI Agent over rpcWS', msg)
+
+    // @ts-ignore
+    session.messages[msg.id].resolve(msg)
     // FIXME TODO
   }
-  const promise = new Promise<QrCodeClientResponse>(resolve => {
-    rpcWS.onopen = (evt) => {
-      resolve({
-        authTokenQR: '',
-        authToken: chanJSON.jwt,
-        identifier: chanJSON.nonce,
-        ws: chanJSON.paths.rpc,
-        socket: rpcWS
-      })
-    }
-  });
-
-  sockMap[chanJSON.nonce] = {
+  
+  const session = sockMap[chanJSON.nonce] = {
     socket: rpcWS,
-    promise,
     msgN: 0,
     messages: {}
   }
 
-  return promise
+  return new Promise<QrCodeClientResponse>(resolve => {
+    rpcWS.onopen = (evt) => {
+      //@ts-ignore
+      session.promise = sendRPC(chanJSON.nonce, 'start') // TODO indicate success
+
+      resolve({
+        authTokenQR: '',
+        authTokenJWT: chanJSON.jwt,
+        identifier: chanJSON.nonce,
+        socket: rpcWS
+      })
+    }
+  });
 }
 
-export const getEncryptedData = (identifier: string, data: string): Promise<string> => {
+export const sendRPC = (identifier: string, rpc: string, request: any = ''): Promise<string> => {
   return new Promise(resolve => {
     const session = sockMap[identifier.toString()]
     const ws = session.socket
     const msgID = session.msgN++
-    const msg = session.messages[msgID] = { id: msgID, rpc: 'asymEncrypt', request: data }
-    ws.send(JSON.stringify(msg))
+    const msg = session.messages[msgID] = {
+      id: msgID,
+      resolve: resolve,
+      rpc,
+      request
+    }
+    ws.send(JSON.stringify({
+      id: msg.id,
+      rpc,
+      request
+    }))
   })
+}
+
+export const getEncryptedData = (identifier: string, data: string): Promise<string> => {
+  return sendRPC(identifier, 'asymEncrypt', data)
 }
 
 export const awaitStatus = (identifier: string) => {
   return sockMap[identifier].promise
+    
 }
